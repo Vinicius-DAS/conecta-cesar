@@ -55,14 +55,11 @@ def gerar_relatorio(disciplinas, professor):
         try:
             # Tenta obter um relatório existente para o professor e a disciplina
             relatorio = Relatorio.objects.get(professor=professor, disciplina=disciplina)
-            print("Relatório existente encontrado:", relatorio)
             relatorio.delete()
-            print("Relatório existente excluído.")
 
         except ObjectDoesNotExist:
             pass
         relatorio = Relatorio.objects.create(professor=professor, disciplina=disciplina)
-        print("Novo relatório criado:", relatorio)
         relatorio.atualizar_relatorio(disciplina)
 
 def gerar_sigla(nome):
@@ -413,7 +410,6 @@ def calendario(request):
 
     # Obtém todos os eventos que estão associados a alguma dessas disciplinas
     eventos = Evento.objects.filter(disciplina__in=disciplinas)
-    print(eventos)
 
     # Converte os eventos em uma lista de dicionários, contendo apenas os campos
     # 'titulo', 'descricao', 'data', 'horario' e 'disciplina__nome'
@@ -426,7 +422,6 @@ def calendario(request):
         'eventos_json': eventos_json,
         'eventos': eventos
     }
-    print(context)
 
     return render(request, 'app_cc/aluno/calendario.html', context)
 
@@ -438,10 +433,8 @@ def calendario(request):
 def slides(request):
     aluno=AlunoModel.objects.get(usuario=request.user)
     disciplinas=Turma.obter_disciplinas(aluno.turma)
-    print(disciplinas)
     arquivos=ProfessorFile.objects.filter(disciplina__in=disciplinas)
 
-    print(arquivos)
 
     return render(request, "app_cc/aluno/slides.html", {"arquivos": arquivos, "disciplinas": disciplinas})
 
@@ -525,7 +518,6 @@ def slidesp(request):
                 professor=professor,
                 disciplina=disciplina,
             )
-            print(archive)
             archive.save()
         else:
             archive = ProfessorFile(
@@ -535,7 +527,6 @@ def slidesp(request):
                 disciplina=disciplina,
             )
             archive.save()
-            print(archive)
 
         messages.success(request, _("Documento salvo com sucesso."))
         return redirect("slidesp")
@@ -658,7 +649,6 @@ def relatoriop(request):
     relatorios=Relatorio.objects.filter(professor=professor)
     disciplinas=Disciplina.objects.filter(professor=professor)
     gerar_relatorio(disciplinas, professor)
-    print(relatorios)
     return render(request, "app_cc/professor/relatoriosp.html", {"relatorios":relatorios,})
 
 #----------------------------------------------------------------------------------------------------------------    
@@ -757,7 +747,6 @@ def boletimp(request):
     for aluno in alunos:
         notas = aluno.notas.all()
         alunos_notas.extend(notas)
-    print(alunos_notas)
 
 
     # Obtém o objeto ProfessorModel do usuário logado
@@ -874,10 +863,7 @@ def delete_todo_item(request, item_id):
     item = get_object_or_404(ToDoItem, id=item_id, todo_list__user=request.user)
     item.delete()
     return redirect('todo_list')
-    
 
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 @login_required
 def forum_view(request):
@@ -917,11 +903,8 @@ def apagar_post(request, post_id):
 @login_required
 def curtir_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    if post.curtir(request.user):
-        pass
-    else:
-        pass
-    return redirect('forum')  
+    post.curtir(request.user)
+    return redirect('forum')
 
 @has_role_or_redirect(Aluno)
 def vocorrencias(request):
@@ -930,18 +913,12 @@ def vocorrencias(request):
 @has_role_or_redirect(Professor)
 def ocorrenciasp(request):
     alunos = AlunoModel.objects.all()  # Recupera todos os alunos cadastrados
-    print("nao entra no debug")
     if request.method == "POST":
-        print("teste")
         title = request.POST.get('title')
-        print(title)
         content = request.POST.get('content')
-        print(content)
         aluno_id = request.POST.get('aluno')
-        print(f"id do aluno: {aluno_id}")
         data_ocorrencia_str = request.POST.get('data_ocorrencia')  # Captura a data da ocorrência como string
         data_ocorrencia = parse_date(data_ocorrencia_str)  # Converte a string da data para um objeto date
-        print(f"data da ocorrencia: {data_ocorrencia}")
 
         if title and content and aluno_id and data_ocorrencia:
             aluno = AlunoModel.objects.get(id=aluno_id)  # Obtém o objeto Aluno correspondente ao ID
@@ -950,52 +927,6 @@ def ocorrenciasp(request):
             return redirect('ocorrenciasp')  # Redireciona para a página desejada
     alunos = AlunoModel.objects.all()
     return render(request, 'app_cc/professor/ocorrenciasp.html', {'alunos': alunos})
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-@login_required
-def forum_view(request):
-    posts = Post.objects.all()
-    return render(request, 'app_cc/aluno/forum.html', {'posts': posts})
-
-
-@login_required
-def create_post(request):
-    if request.method == "POST":
-        titulo = request.POST.get('titulo')
-        corpo = request.POST.get('corpo')
-        autor_id = request.user.id  # Assume que o usuário está autenticado
-        publicado_em = timezone.now()
-        pdf = request.FILES.get('pdf')  # Assume que o formulário tem um campo de upload de arquivo para o pdf
-
-        if titulo and corpo and autor_id:
-            autor = User.objects.get(id=autor_id)
-            Post.objects.create(titulo=titulo, corpo=corpo, autor=autor, publicado_em=publicado_em, pdf=pdf)
-            messages.success(request, 'Post criado com sucesso.')
-            return redirect('forum')  
-        else:
-            messages.error(request, 'Erro ao criar o post. Por favor, preencha todos os campos.')
-
-    return render(request, 'app_cc/aluno/forum_novo.html')
-
-@login_required
-def apagar_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    if request.user == post.autor:
-        post.delete()
-        messages.success(request, 'Post apagado com sucesso.')
-    else:
-        messages.error(request, 'Você não tem permissão para apagar este post.')
-    return redirect('forum')  
-
-@login_required
-def curtir_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-    if post.curtir(request.user):
-        pass
-    else:
-        pass
-    return redirect('forum')  
 
 @login_required
 def aluno_atividades(request):
@@ -1109,10 +1040,8 @@ def atividades_professor(request):
 
         _atividade = []
         realizacao_atividades = []
-        print(atividades)
         for atividade in atividades:
             _atividade.append(atividade)
-            print(atividades)
             x = list(AtividadeFeita.objects.filter(atividade=atividade))
             if not x:
                 realizacao_atividades.append(False)
