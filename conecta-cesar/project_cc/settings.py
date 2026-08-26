@@ -229,3 +229,25 @@ MESSAGE_TAGS = {
     constants.WARNING: 'warning',
     constants.DEBUG: 'debug',
 }
+
+# Django's own default logging config only emails ADMINS (unset in this
+# project) when a view raises an unhandled exception with DEBUG=False —
+# nothing reaches stdout/stderr otherwise, so a 500 in prod shows up as
+# just a bare status code in Render's logs with no traceback at all.
+# This adds a console handler so the actual traceback is visible there.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
