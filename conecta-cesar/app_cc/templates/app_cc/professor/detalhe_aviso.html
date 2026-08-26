@@ -19,10 +19,8 @@
       </a>
     </div>
     <br>
-{%if aviso.imagem %}
-<img src="{{ aviso.imagem.url}}" alt="Imagem do aviso" class="imagem-aviso ">
-{%else%}
-<img src="#" alt="{{aviso.titulo}}" class="imagem-aviso ">
-{%endif%}</div>
+{% if aviso.imagem %}
+<img src="{{ aviso.imagem.url }}" alt="Imagem do aviso" class="imagem-aviso">
+{% endif %}</div>
 <br>
 {% endblock content %}
