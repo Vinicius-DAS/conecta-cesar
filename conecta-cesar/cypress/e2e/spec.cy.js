@@ -394,12 +394,12 @@ describe('Test Suite for Students', () => {
     });
     
 
-    cy.fixture('fotoTeste.png').then((fileContent) => {
-      cy.get('#file-input').attachFile({
-        fileContent,
-        fileName: 'fotoTeste.png',//Envia um arquivo funcional
-        mimeType: 'image/png',
-      });
+    {
+      // Passing the fixture path directly (as done elsewhere in this
+      // file) instead of manually reading it via cy.fixture().then() —
+      // that pattern doesn't apply binary-safe encoding on its own, so
+      // the uploaded PNG's bytes were arriving corrupted server-side.
+      cy.get('#file-input').attachFile('fotoTeste.png');
       cy.get(':nth-child(2) > .form-text-input > .form-control').clear().type('15')
       cy.get('.send').click()//Enviar
 
@@ -411,10 +411,8 @@ describe('Test Suite for Students', () => {
       cy.get('.alert').within(() => {
         // Verifica se o texto "Somente arquivos JPG ou PNG são permitidos" está presente no formulário
         cy.contains('Arquivo excluído com sucesso.').should('be.visible');
-      }); 
-      
-
-    });    
+      });
+    }
   });
   it('Caso de teste Diario do Aluno', () => {
     cy.get('#navbar-link').click(); 

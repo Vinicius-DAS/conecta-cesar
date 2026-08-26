@@ -83,8 +83,13 @@ INTERNAL_IPS = []
 
 # debug_toolbar was previously installed unconditionally, meaning it (and
 # the debug pages it exposes) ran even when DEBUG was meant to be off.
-# Only wire it in for real local development now.
-if DEBUG:
+# Only wire it in for real local development now — DISABLE_DEBUG_TOOLBAR
+# additionally opts out even in DEBUG mode, since the toolbar's floating
+# "Hide »" button overlaps nav elements and breaks Cypress's cy.click()
+# (this is why the E2E suite has never actually passed against a normal
+# dev server; the CI workflow sets this when running Cypress).
+DISABLE_DEBUG_TOOLBAR = os.getenv('DISABLE_DEBUG_TOOLBAR', '0').lower() in ['true', 't', '1']
+if DEBUG and not DISABLE_DEBUG_TOOLBAR:
     INSTALLED_APPS.append("debug_toolbar")
     MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
     INTERNAL_IPS.append('127.0.0.1')
