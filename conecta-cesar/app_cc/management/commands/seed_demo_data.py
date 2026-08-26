@@ -31,7 +31,8 @@ from app_cc.models import (
     Turma,
 )
 from app_cc.views import gerar_relatorio
-from project_cc.roles import Aluno as AlunoRole, Professor as ProfessorRole
+from project_cc.roles import Aluno as AlunoRole
+from project_cc.roles import Professor as ProfessorRole
 
 PROFESSORES = [
     ("ana.ferreira", "Ana Ferreira"),
@@ -82,7 +83,7 @@ class Command(BaseCommand):
             raise CommandError(
                 f"Dados já existem (rode 'manage.py flush' pra limpar o "
                 f"banco antes, se quiser recomeçar do zero): {e}"
-            )
+            ) from e
 
     def _seed(self):
         turmas = {nome: Turma.objects.create(nome=nome) for nome in ("Turma A", "Turma B")}

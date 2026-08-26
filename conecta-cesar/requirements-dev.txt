@@ -1,0 +1,4 @@
+# Dev-only tooling — not installed in production (Render's build only
+# runs `pip install -r requirements.txt`).
+-r requirements.txt
+ruff

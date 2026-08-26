@@ -1,24 +1,45 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
-from .models import Like, Post, Review, Disciplina, Nota, Diario, Professor as ProfessorModel, Aluno as AlunoModel, Falta, File, Evento, Aviso, Relatorio, ProfessorFile, Turma, Atividade, AtividadeFeita
-from rolepermissions.checkers import has_role
-from project_cc.roles import Professor, Aluno
-from django.contrib import messages
+import json
+import os
 from datetime import date
 from functools import wraps
+
 from django.conf import settings
-import os
-import json
-from django.utils.translation import gettext as _
-from django.core.exceptions import ObjectDoesNotExist
-from .models import ToDoItem, ToDoList
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.utils.dateparse import parse_date
-from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.text import get_valid_filename
+from django.utils.translation import gettext as _
 from PIL import Image, UnidentifiedImageError
+from rolepermissions.checkers import has_role
+
+from project_cc.roles import Aluno, Professor
+
+from .models import Aluno as AlunoModel
+from .models import (
+    Atividade,
+    AtividadeFeita,
+    Aviso,
+    Diario,
+    Disciplina,
+    Evento,
+    Falta,
+    File,
+    Nota,
+    Post,
+    ProfessorFile,
+    Relatorio,
+    Review,
+    ToDoItem,
+    ToDoList,
+    Turma,
+)
+from .models import Professor as ProfessorModel
 
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
 # Signature bytes used to check a file's actual content matches its
@@ -51,6 +72,10 @@ def uploaded_file_content_is_valid(file, extension):
 
 
 def gerar_relatorio(disciplinas, professor):
+    """Rebuilds each Relatorio (nota/frequência abaixo do esperado) for
+    the given professor, one per disciplina — deletes any existing
+    report for that (professor, disciplina) pair first, then recreates
+    it via Relatorio.atualizar_relatorio()."""
     for disciplina in disciplinas:
         try:
             # Tenta obter um relatório existente para o professor e a disciplina
@@ -67,6 +92,10 @@ def gerar_sigla(nome):
             return "".join([palavra[0].upper() for palavra in nome.split()])
 
 def has_role_or_redirect(required_role):
+    """View decorator: redirects to login with an error message unless
+    the request is from an authenticated, non-superuser user holding
+    `required_role` (a project_cc.roles class, e.g. Aluno/Professor)."""
+
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
@@ -74,20 +103,20 @@ def has_role_or_redirect(required_role):
             if not request.user.is_authenticated:
                 messages.error(request, _("Você precisa fazer login para acessar esta página."))
                 return redirect(reverse("login"))  # Redireciona para a página de login
-            
+
             # Verificar se o usuário é administrador (superuser)
             if request.user.is_superuser:
                 messages.error(request, _("Administradores não têm acesso a esta página."))
                 return redirect(reverse("login"))  # Redireciona para a página de login com mensagem de erro
-            
+
             # Verificar se o usuário tem o papel necessário
             if not has_role(request.user, required_role):
                 messages.error(request, _(f"Permissão negada. Você precisa ser '{required_role.__name__}' para acessar esta página."))
                 return redirect(reverse("login"))  # Redireciona para a página de login com mensagem de erro
-            
+
             # Se o usuário está autenticado e tem o papel correto, permite o acesso à view
             return view_func(request, *args, **kwargs)
-        
+
         return _wrapped_view
     return decorator
 # -----------------STUDENT VIEWS--------------------------------------------
@@ -101,7 +130,7 @@ def detalhe_aviso(request, aviso_id):
     aviso = get_object_or_404(Aviso, pk=aviso_id)
     return render(request, 'app_cc/aluno/detalhe_aviso.html', {'aviso': aviso})
 
-#----------------------------------------------------------------------------------------------------------------  
+#----------------------------------------------------------------------------------------------------------------
 @has_role_or_redirect(Aluno)
 def hora_extra(request):
     # Obter o aluno associado ao usuário autenticado
@@ -222,12 +251,12 @@ def hora_extra(request):
 
         messages.success(request, _("Arquivo salvo com sucesso."))
         return redirect("hora_extra")
-   
-#----------------------------------------------------------------------------------------------------------------    
+
+#----------------------------------------------------------------------------------------------------------------
 
 
 
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 @has_role_or_redirect(Aluno)
 def boletim(request):
     try:
@@ -262,8 +291,8 @@ def boletim(request):
         }
 
     return render(request, 'app_cc/aluno/boletim.html', context)
-#----------------------------------------------------------------------------------------------------------------   
-@has_role_or_redirect(Aluno) 
+#----------------------------------------------------------------------------------------------------------------
+@has_role_or_redirect(Aluno)
 def frequencia(request):
     try:
         # Obter o aluno associado ao usuário autenticado
@@ -300,10 +329,10 @@ def frequencia(request):
         }
 
     return render(request, 'app_cc/aluno/frequencia.html', context)
-#---------------------------------------------------------------------------------------------------------------- 
-   
+#----------------------------------------------------------------------------------------------------------------
 
-@has_role_or_redirect(Aluno) 
+
+@has_role_or_redirect(Aluno)
 def variacao_notas(request):
     try:
         aluno = AlunoModel.objects.get(usuario=request.user)
@@ -315,7 +344,7 @@ def variacao_notas(request):
     if aluno and aluno.turma:
         disciplinas = aluno.turma.disciplinas.all()
 
-    
+
         for disciplina in disciplinas:
             nota_instance = Nota.objects.filter(aluno=aluno, disciplina=disciplina).first()
             nota = nota_instance.valor if nota_instance else 0
@@ -331,13 +360,13 @@ def variacao_notas(request):
     return render(request, 'app_cc/aluno/variacao_notas.html', {
         'disciplinas_com_notas': disciplinas_com_notas
     })
-#---------------------------------------------------------------------------------------------------------------- 
+#----------------------------------------------------------------------------------------------------------------
 
 @has_role_or_redirect(Aluno)
 def perfil(request):
     try:
         aluno = AlunoModel.objects.get(usuario=request.user)
-        
+
         if request.method == 'POST':
             foto_perfil = request.FILES.get('foto_perfil')  # Captura o arquivo enviado pelo formulário
 
@@ -371,7 +400,7 @@ def perfil(request):
         return redirect("login")
 
     return render(request, 'app_cc/aluno/perfil.html', context)
-#---------------------------------------------------------------------------------------------------------------- 
+#----------------------------------------------------------------------------------------------------------------
 
 @has_role_or_redirect(Aluno)
 def diario(request):
@@ -425,9 +454,9 @@ def calendario(request):
 
     return render(request, 'app_cc/aluno/calendario.html', context)
 
-#----------------------------------------------------------------------------------------------------------------    
-#----------------------------------------PROFESSOR VIEWS---------------------------------------------------------  
-#---------------------------------------------------------------------------------------------------------------- 
+#----------------------------------------------------------------------------------------------------------------
+#----------------------------------------PROFESSOR VIEWS---------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------------
 
 @has_role_or_redirect(Aluno)
 def slides(request):
@@ -475,7 +504,7 @@ def slidesp(request):
             return redirect("slidesp")
 
         # Para atualização de horas extras
-        
+
         # Para uploads de novos arquivos
         file = request.FILES.get("slide_file")
         titulo = request.POST.get("slide_titulo")
@@ -530,7 +559,7 @@ def slidesp(request):
 
         messages.success(request, _("Documento salvo com sucesso."))
         return redirect("slidesp")
-    
+
     # Após lidar com POST, renderizar com 'ext' no contexto
     arquivos = ProfessorFile.objects.filter(professor=professor)
     return render(
@@ -539,13 +568,13 @@ def slidesp(request):
         {"arquivos": arquivos, },
     )
 
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 
 @has_role_or_redirect(Professor)  # Garante que apenas usuários com papel de professor têm acesso
 def perfilp(request):
     try:
         professor = ProfessorModel.objects.get(usuario=request.user)
-        
+
         if request.method == 'POST':
             foto_perfil = request.FILES.get('foto_perfil')  # Captura o arquivo enviado pelo formulário
 
@@ -579,7 +608,7 @@ def perfilp(request):
         return redirect("login")
 
     return render(request, 'app_cc/professor/perfilp.html', context)
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 @has_role_or_redirect(Professor)
 def frequenciap(request):
     professor = ProfessorModel.objects.get(usuario=request.user)
@@ -622,7 +651,7 @@ def frequenciap(request):
             for aluno in AlunoModel.objects.filter(turma=turma):
                 total_faltas = Falta.objects.filter(aluno=aluno, disciplina=disciplina).count()
                 tem_falta_hoje = Falta.objects.filter(aluno=aluno, data=hoje, disciplina=disciplina).exists()
-                
+
                 aluno_info = {
                     'aluno': aluno,
                     'total_faltas': total_faltas,
@@ -642,7 +671,7 @@ def frequenciap(request):
         'app_cc/professor/frequenciap.html',
         {'disciplinas_com_turmas_e_alunos': disciplinas_com_turmas_e_alunos}
     )
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 @has_role_or_redirect(Professor)
 def relatoriop(request):
     professor = ProfessorModel.objects.get(usuario=request.user)
@@ -651,7 +680,7 @@ def relatoriop(request):
     gerar_relatorio(disciplinas, professor)
     return render(request, "app_cc/professor/relatoriosp.html", {"relatorios":relatorios,})
 
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 @has_role_or_redirect(Professor)
 def calendariop(request):
     professor = ProfessorModel.objects.get(usuario=request.user)
@@ -681,7 +710,7 @@ def calendariop(request):
             messages.error(request, f'Erro ao criar evento: {str(e)}')
 
         return redirect('calendariop')
-    
+
     else:
         eventos = Evento.objects.filter(professor=professor)
         eventos_list = list(eventos.values('titulo', 'descricao', 'data', 'horario', 'disciplina__nome'))
@@ -692,8 +721,8 @@ def calendariop(request):
             'eventos': eventos,
         }
         return render(request, 'app_cc/professor/calendariop.html', context)
-    
-#----------------------------------------------------------------------------------------------------------------    
+
+#----------------------------------------------------------------------------------------------------------------
 
 @has_role_or_redirect(Professor)
 def diariop(request):
@@ -727,7 +756,7 @@ def diariop(request):
         }
 
         return render(request, 'app_cc/professor/diariop.html', context)
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 
 @has_role_or_redirect(Professor)
 def avisosp(request):
@@ -738,11 +767,11 @@ def avisosp(request):
 def detalhe_avisop(request, aviso_id):
     aviso = get_object_or_404(Aviso, pk=aviso_id)
     return render(request, 'app_cc/professor/detalhe_avisop.html', {'aviso': aviso})
-#----------------------------------------------------------------------------------------------------------------    
+#----------------------------------------------------------------------------------------------------------------
 @has_role_or_redirect(Professor)
 def boletimp(request):
-    
-    alunos = AlunoModel.objects.all()  
+
+    alunos = AlunoModel.objects.all()
     alunos_notas = []
     for aluno in alunos:
         notas = aluno.notas.all()
@@ -753,7 +782,7 @@ def boletimp(request):
     professor = ProfessorModel.objects.get(usuario=request.user)
     # Obter todas as disciplinas associadas ao professor
     disciplinas = Disciplina.objects.filter(professor=professor)
-    
+
     if request.method == "POST":
         # Percorre cada disciplina, turma e aluno
         for disciplina in disciplinas:
@@ -808,7 +837,7 @@ def boletimp(request):
                     'aluno': aluno,
                     'turma': turma,
                     'nota': nota_valor,
-                    
+
                 })
 
         disciplinas_com_turmas_e_alunos.append(disciplina_info)
@@ -846,10 +875,10 @@ def add_todo_item(request, list_id):
     if request.method == 'POST':
         content = request.POST.get('content')
         priority = request.POST.get('priority')
-        
+
         ToDoItem.objects.create(todo_list=todo_list, content=content, priority=priority)
         return redirect('todo_list')
-           
+
     return render(request, 'app_cc/aluno/add_todo_item.html', {'todo_list': todo_list})
 
 @login_required
@@ -884,7 +913,7 @@ def create_post(request):
             autor = User.objects.get(id=autor_id)
             Post.objects.create(titulo=titulo, corpo=corpo, autor=autor, publicado_em=publicado_em, pdf=pdf)
             messages.success(request, 'Post criado com sucesso.')
-            return redirect('forum')  
+            return redirect('forum')
         else:
             messages.error(request, 'Erro ao criar o post. Por favor, preencha todos os campos.')
 
@@ -898,7 +927,7 @@ def apagar_post(request, post_id):
         messages.success(request, 'Post apagado com sucesso.')
     else:
         messages.error(request, 'Você não tem permissão para apagar este post.')
-    return redirect('forum')  
+    return redirect('forum')
 
 @login_required
 def curtir_post(request, post_id):
@@ -939,7 +968,7 @@ def aluno_atividades(request):
         if aluno.turma:
             turma = aluno.turma
         atividades = Atividade.objects.filter(turma=aluno.turma)
-        
+
         conclusao_atividade = []
         for atividade in atividades:
             if AtividadeFeita.objects.filter(atividade=atividade, conclusao=True, aluno=aluno):
@@ -947,7 +976,7 @@ def aluno_atividades(request):
             else:
                 conclusao_atividade.append(False)
 
-        _atividades = zip(atividades, conclusao_atividade)
+        _atividades = zip(atividades, conclusao_atividade, strict=True)
 
         if request.method != 'POST':
             return render(request, 'app_cc/aluno/atividades.html', {
@@ -973,7 +1002,7 @@ def aluno_atividades(request):
                         novas_atividades.append(atividade)
                         conclusao_atividade2.append(False)
 
-            atividades_filtradas = list(zip(novas_atividades, conclusao_atividade2))
+            atividades_filtradas = list(zip(novas_atividades, conclusao_atividade2, strict=True))
             return render(request, 'app_cc/aluno/atividades.html', {
                 'zip': atividades_filtradas,
                 'aluno': aluno,
@@ -981,7 +1010,7 @@ def aluno_atividades(request):
             })
     else:
         raise Http404()
-        
+
 @login_required
 def aluno_atividade(request, id):
     if Atividade.objects.filter(id=id) and AlunoModel.objects.filter(usuario=request.user).exists():
@@ -998,7 +1027,7 @@ def aluno_atividade(request, id):
                 'aluno': aluno,
                 'atividadeFeita': atividadeFeita,
             })
-        
+
         arquivo = request.FILES.get('arquivo')
         if not atividadeFeita:
             if arquivo:
@@ -1022,7 +1051,7 @@ def aluno_atividade(request, id):
                     'aluno': aluno,
                     'atividadeFeita': atividadeFeita,
                 })
-        
+
         atividadeFeita = True
         return render(request, 'app_cc/aluno/atividade.html', {
             'atividade': atividade,
@@ -1048,7 +1077,7 @@ def atividades_professor(request):
             else:
                 realizacao_atividades.append(x)
 
-        _zip = list(zip(_atividade, realizacao_atividades))
+        _zip = list(zip(_atividade, realizacao_atividades, strict=True))
 
         return render(request, 'app_cc/professor/atividades_professor.html', {
             'zip': _zip,
@@ -1069,7 +1098,7 @@ def cadastrar_atividades_professor(request):
                 'turmas': turmas,
                 'disciplinas': disciplinas,
             })
-    
+
         arquivo = request.FILES.get('arquivo', None)
         turma = request.POST.get('turma')
         disciplina = request.POST.get('disciplina')
@@ -1083,7 +1112,7 @@ def cadastrar_atividades_professor(request):
                     'turmas': turmas,
                     'disciplinas': disciplinas,
                 })
-            
+
         turma = Turma.objects.get(nome=turma)
 
         if not Disciplina.objects.filter(nome=disciplina).exists():
@@ -1093,13 +1122,13 @@ def cadastrar_atividades_professor(request):
                     'turmas': turmas,
                     'disciplinas': disciplinas,
                 })
-            
+
         disciplina = Disciplina.objects.get(nome=disciplina)
 
-        atividade = Atividade.objects.create(turma=turma, 
+        atividade = Atividade.objects.create(turma=turma,
                                              disciplina=disciplina,
-                                             arquivo=arquivo, 
-                                             titulo=titulo, 
+                                             arquivo=arquivo,
+                                             titulo=titulo,
                                              texto=texto,
                                              professor=professor,
                                             )

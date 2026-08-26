@@ -1,8 +1,9 @@
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth.models import User
 from rolepermissions.checkers import has_role
-from project_cc.roles import Professor, Aluno
+
+from project_cc.roles import Aluno, Professor
 
 
 class CadastroTests(TestCase):

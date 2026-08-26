@@ -1,10 +1,24 @@
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
-from app_cc.models import Turma, Professor, Disciplina, Aluno, Diario, Nota, Falta, Aviso, Evento, ProfessorFile
-from rolepermissions.roles import remove_role
-from project_cc.roles import Professor as ProfessorRole, Aluno as AlunoRole
+from django.core.management.base import BaseCommand, CommandError
 from django.db.utils import IntegrityError
+from rolepermissions.roles import remove_role
+
+from app_cc.models import (
+    Aluno,
+    Aviso,
+    Diario,
+    Disciplina,
+    Evento,
+    Falta,
+    Nota,
+    Professor,
+    ProfessorFile,
+    Turma,
+)
+from project_cc.roles import Aluno as AlunoRole
+from project_cc.roles import Professor as ProfessorRole
+
 
 class Command(BaseCommand):
     help = 'Exclui dados de teste para Cypress: Professor, Turma, Disciplina, Aluno, Diário, Nota, Faltas, Avisos, Eventos e Arquivos do Professor'
