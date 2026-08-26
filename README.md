@@ -51,6 +51,10 @@ Bem vindo ao repositório do nosso projeto Conecta Cesar. Nossa plataforma está
 
 - **Organização**:<br>![Jira](https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white)
 
+## 💻 Rodando localmente
+
+Ver [contributing.md](contributing.md) pro passo a passo completo (ambiente virtual, dependências, `.env`, migrações, dados de exemplo, testes).
+
 ## 🚀 Deploy
 
 Ver [DEPLOY.md](DEPLOY.md) pro passo a passo de colocar isso no ar (Render + Neon, gratuito).
@@ -59,9 +63,8 @@ Ver [DEPLOY.md](DEPLOY.md) pro passo a passo de colocar isso no ar (Render + Neo
 
 <ul>
   <li>
-    <a  href="https://conecacesar.azurewebsites.net">
-      Link do Site</a
-  </li> 
+    Link do Site — a ser preenchido após o deploy no Render, ver <a href="DEPLOY.md">DEPLOY.md</a>
+  </li>
 
   <li>
     <a  href="https://conecta-cesar.atlassian.net/jira/software/projects/SCRUM/boards/1?atlOrigin=eyJpIjoiZDJlOTY0YzQ0MjY0NGVhMmExYjE3YzE5YzJjYThlODIiLCJwIjoiaiJ9"
