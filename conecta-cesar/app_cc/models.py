@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 import random
 from django.utils import timezone
-from django.utils import timezone
 
 # Modelo para Turmas
 
@@ -56,13 +55,8 @@ class Aluno(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name="aluno", null=True)
     turma = models.ForeignKey(Turma, on_delete=models.CASCADE, related_name="alunos", null=True)
     email = models.EmailField(null=True, max_length=254)  # Garantir emails únicos
-    disciplinas = models.ManyToManyField(Disciplina, related_name="alunos")
     ra = models.CharField(max_length=10, unique=True, default=generate_unique_ra)
     foto_perfil = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    
-    # Novo campo de foto de perfil
-     
-    # Função explícita para RA
 
     def __str__(self):
         return f"{self.usuario.username}"
@@ -104,7 +98,6 @@ class Nota(models.Model):
 
     def __str__(self):
         return f"{self.aluno.usuario.username} - {self.disciplina.nome}: {self.valor}"
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 class Diario(models.Model):
     disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE, related_name='diarios', null=True)
@@ -114,7 +107,6 @@ class Diario(models.Model):
 
     def __str__(self):
         return f"{self.disciplina.nome} - {self.titulo}"
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 class Falta(models.Model):
     aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, related_name='faltas')
@@ -228,7 +220,6 @@ class ToDoItem(models.Model):
 
     def __str__(self):
         return self.content
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 class Review(models.Model):
     aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
@@ -238,7 +229,6 @@ class Review(models.Model):
     def __str__(self):
         return self.title
 
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 class Post(models.Model):
     autor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
