@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as django_login
 from rolepermissions.checkers import has_role
 from project_cc.roles import Aluno, Professor
-from app_cc.models import Aluno as AlunoModel, Professor as ProfessorModel
+from app_cc.models import Aluno as AlunoModel
+from app_cc.forms import CadastroForm
 from django.contrib import messages
 from rolepermissions.roles import assign_role
 from django.utils.translation import gettext as _
@@ -18,10 +19,10 @@ def cadastro(request):
     """
     View function for user registration.
 
-    This function handles both GET and POST requests.
-    In case of a GET request, it renders the 'cadastro.html' template.
-    In case of a POST request, it creates a new user and assigns a role
-    based on the selected user type.
+    Public self-registration only ever creates an aluno account — there's
+    no approval step here, so letting visitors pick 'professor' themselves
+    would hand out grade/attendance-management access to anyone. Professor
+    accounts are created via Django Admin by an existing staff member.
     """
 
     # The only way for the request to be a GET is if the user tries to access the registration page directly by typing the URL in the browser.
@@ -30,30 +31,20 @@ def cadastro(request):
         return render(request, 'cadastro.html')
 
     else:
-        # Get form data
-        user_name = request.POST.get('username')
-        user_email = request.POST.get('email')
-        senha = request.POST.get('senha')
-        user_type = request.POST.get('user_type')
-
-        # Check if a user with the same name already exists
-        if User.objects.filter(username=user_name).exists():
-            messages.error(request, _("Já existe um usuário com esse nome"))
-            return redirect("cadastro")  # Redirect to the same page
-
-        # Create a new user
-        user = User.objects.create_user(username=user_name, email=user_email, password=senha)
-
-        # Assign a role based on the selected user type
-        if user_type == 'professor':
-            assign_role(user, Professor)
-            ProfessorModel.objects.create(usuario=user,  email=user_email)
-        elif user_type == 'aluno':
-            assign_role(user, Aluno)
-            AlunoModel.objects.create(usuario=user,  email=user_email)
-        else:
-            messages.error(request, _("Papel do usuário não especificado. Selecione 'professor' ou 'aluno'."))
+        form = CadastroForm(request.POST)
+        if not form.is_valid():
+            for field_errors in form.errors.values():
+                for error in field_errors:
+                    messages.error(request, error)
             return redirect("cadastro")
+
+        user = User.objects.create_user(
+            username=form.cleaned_data['username'],
+            email=form.cleaned_data['email'],
+            password=form.cleaned_data['senha'],
+        )
+        assign_role(user, Aluno)
+        AlunoModel.objects.create(usuario=user, email=form.cleaned_data['email'])
 
         # Success message
         messages.success(request, _("Usuário cadastrado com sucesso. Agora faça login."))

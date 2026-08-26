@@ -1,4 +1,5 @@
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from app_cc.models import Turma, Professor, Disciplina, Aluno, Diario, Nota, Falta, Aviso, Evento, ProfessorFile
 from rolepermissions.roles import remove_role
@@ -9,6 +10,12 @@ class Command(BaseCommand):
     help = 'Exclui dados de teste para Cypress: Professor, Turma, Disciplina, Aluno, Diário, Nota, Faltas, Avisos, Eventos e Arquivos do Professor'
 
     def handle(self, *args, **kwargs):
+        # Companion to seed_cypress_data — same guard, so it can't be used
+        # to wipe accounts/data by username on a real deployment.
+        if not settings.DEBUG:
+            raise CommandError(
+                "delete_cypress_data only runs with DEBUG=True."
+            )
         try:
             # Exclui as faltas
             Falta.objects.filter(aluno__usuario__username='aluno1').delete()

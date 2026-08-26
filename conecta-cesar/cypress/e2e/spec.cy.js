@@ -12,7 +12,7 @@ npx cypress open
  */
 // Testes para usuários do tipo Professor
 
-//Foi criado o comando "py ./manage.py tests" para criar os perfis de aluno e professor, esse comando sera executado no workflows da azure para garantir que os testes sejam realizados com sucesso o comando esta em app_cc/management/commands/tests.py
+//Foi criado o comando "py ./manage.py seed_cypress_data" para criar os perfis de aluno e professor, esse comando sera executado no workflows da azure para garantir que os testes sejam realizados com sucesso o comando esta em app_cc/management/commands/seed_cypress_data.py
 // Testes para usuários do tipo Professor
 describe('Test Suite - Setup and Tests', () => {
   before(() => {
@@ -42,13 +42,13 @@ describe('Test Suite - Setup and Tests', () => {
 describe('Test Suite for Professors', () => {
   // Loga no início de cada teste como "professor1"
   beforeEach(() => {
-    cy.exec("python3 manage.py delete_tests", { failOnNonZeroExit: false }).then((result) => {
+    cy.exec("python3 manage.py delete_cypress_data", { failOnNonZeroExit: false }).then((result) => {
       // Verifica se o comando foi executado com sucesso
       expect(result.code).to.eq(0);
     });
     
     // Cria novos dados de teste
-    cy.exec("python3 manage.py tests", { failOnNonZeroExit: false }).then((result) => {
+    cy.exec("python3 manage.py seed_cypress_data", { failOnNonZeroExit: false }).then((result) => {
       // Verifica se o comando foi executado com sucesso
       expect(result.code).to.eq(0);
     });
@@ -252,12 +252,12 @@ describe('Test Suite for Professors', () => {
 describe('Test Suite for Students', () => {
   // Loga o aluno antes de cada teste como "aluno1"
   beforeEach(() => {
-    cy.exec("python3 manage.py delete_tests", { failOnNonZeroExit: false }).then((result) => {
+    cy.exec("python3 manage.py delete_cypress_data", { failOnNonZeroExit: false }).then((result) => {
       // Verifica se o comando foi executado com sucesso
       expect(result.code).to.eq(0);
     });
     
-    cy.exec("python3 manage.py tests", { failOnNonZeroExit: false }).then((result) => {
+    cy.exec("python3 manage.py seed_cypress_data", { failOnNonZeroExit: false }).then((result) => {
       expect(result.code).to.eq(0);
     });
     cy.visit('http://127.0.0.1:8000/pt/auth/login/');
