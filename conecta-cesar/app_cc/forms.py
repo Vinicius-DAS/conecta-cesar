@@ -24,5 +24,5 @@ class CadastroForm(forms.Form):
         try:
             validate_password(senha)
         except ValidationError as error:
-            raise ValidationError(error.messages)
+            raise ValidationError(error.messages) from error
         return senha

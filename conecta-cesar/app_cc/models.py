@@ -1,12 +1,15 @@
-from django.db import models
-from django.contrib.auth.models import User
 import random
+
+from django.contrib.auth.models import User
+from django.db import models
 from django.utils import timezone
 
 # Modelo para Turmas
 
 User.add_to_class('role', models.CharField(max_length=50, default='Aluno', choices=[('Aluno', 'Aluno'), ('Professor', 'Professor')]))
 def generate_unique_ra():
+    """Generates a random 10-digit RA (registro acadêmico) not already
+    used by any Aluno or Professor."""
     while True:
         ra = str(random.randint(10**9, 10**10 - 1))  # Gera um RA de 10 dígitos
         if not Aluno.objects.filter(ra=ra).exists() and not Professor.objects.filter(ra=ra).exists():
@@ -14,10 +17,10 @@ def generate_unique_ra():
 
 class Turma(models.Model):
     nome = models.CharField(max_length=100, null=True)
-    
+
     def __str__(self):
         return self.nome
-    
+
     # Método para obter as disciplinas associadas a esta turma
     def obter_disciplinas(self):
         return self.disciplinas.all()  # Retorna todas as disciplinas associadas a esta turma
@@ -31,7 +34,7 @@ class Professor(models.Model):
 
     def __str__(self):
         return self.usuario.username
-    
+
     # Método para obter disciplinas associadas ao professor
     def disciplinas(self):
         return Disciplina.objects.filter(professor=self)  # Disciplinas deste professor
@@ -41,7 +44,7 @@ class Disciplina(models.Model):
     nome = models.CharField(max_length=100, null=True)
     professor = models.ForeignKey(Professor, on_delete=models.CASCADE, related_name="disciplinas", null=True)
     turmas = models.ManyToManyField(Turma, related_name="disciplinas")  # Muitas disciplinas em muitas turmas
-    
+
     def __str__(self):
         return self.nome
 
@@ -49,7 +52,7 @@ class Disciplina(models.Model):
         # Divide o nome por espaços e pega a primeira letra de cada palavra
         return "".join([palavra[0].upper() for palavra in self.nome.split()])
 
-  
+
 # Modelo para Alunos
 class Aluno(models.Model):
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name="aluno", null=True)
@@ -64,7 +67,7 @@ class Aluno(models.Model):
     # Método para obter disciplinas associadas à turma do aluno
     def disciplinas(self):
         return self.turma.obter_disciplinas()  # Disciplinas associadas à turma
-    
+
     def professores(self):
         return self.turma.professores()
 
@@ -75,11 +78,11 @@ class Evento(models.Model):
     horario = models.TimeField(blank=True, null=True)
     disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE)
     professor = models.ForeignKey(Professor, on_delete=models.CASCADE)
-    
+
 
     def __str__(self):
         return f"{self.titulo} - {self.data}"
-    
+
 class Aviso(models.Model):
     titulo = models.CharField(max_length=200)
     corpo = models.TextField()
@@ -88,7 +91,7 @@ class Aviso(models.Model):
 
     def __str__(self):
         return self.titulo
-    
+
 
 # Modelo para Notas
 class Nota(models.Model):
@@ -115,7 +118,7 @@ class Falta(models.Model):
     disciplina = models.ForeignKey(Disciplina, on_delete=models.CASCADE, related_name='faltas', null=True)  # Relacionamento com Disciplina
     def __str__(self):
         return f"Falta de {self.aluno.usuario.username} em {self.data}"#nao aparece pro usuario.
-    
+
 class File(models.Model):
     title=models.CharField(max_length=300, null=True)#Considerar deletar o título para evitar error
     archive=models.ImageField()
@@ -124,7 +127,7 @@ class File(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.aluno.usuario.username}"
-   
+
 class ProfessorFile(models.Model):
     professor=models.ForeignKey(Professor, on_delete=models.CASCADE, related_name="arquivos", null=True)
     disciplina=models.ForeignKey(Disciplina, on_delete=models.CASCADE, null=True, related_name="arquivos")
@@ -159,7 +162,7 @@ class Relatorio(models.Model):
             self.alunos_nota_abaixo.add(nota.aluno)
 
         # Verifica faltas acima de 8 para todos os alunos na disciplina específica
-        
+
         for aluno in Aluno.objects.filter(turma__disciplinas=disciplina):
             total_faltas = Falta.objects.filter(aluno=aluno, disciplina=disciplina).count()
             if total_faltas >= 8:
@@ -225,7 +228,7 @@ class Review(models.Model):
     title = models.CharField(max_length=100)
     content = models.TextField()
     data_ocorrencia = models.DateField(auto_now_add=True)
-    
+
     def __str__(self):
         return self.title
 
@@ -249,7 +252,7 @@ class Post(models.Model):
     def curtir(self, user):
         like, created = Like.objects.get_or_create(usuario=user, post=self)
         if not created:
-            like.delete()  
+            like.delete()
             return False
         return True
 
@@ -265,7 +268,7 @@ class Like(models.Model):
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('usuario', 'post')  
+        unique_together = ('usuario', 'post')
 
     def __str__(self):
         return f'{self.usuario.username} curtiu {self.post.titulo}'
@@ -284,7 +287,7 @@ class Atividade(models.Model):
 
     def __str__(self):
         return f'{self.titulo} / {self.turma} / {self.disciplina}'
-    
+
 
 class AtividadeFeita(models.Model):
     aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE, verbose_name='Aluno')

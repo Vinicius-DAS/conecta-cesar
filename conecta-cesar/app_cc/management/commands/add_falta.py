@@ -1,14 +1,17 @@
-from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
-from app_cc.models import Aluno, Falta, Disciplina
 from datetime import date, timedelta
+
+from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand
+
+from app_cc.models import Aluno, Disciplina, Falta
+
 
 class Command(BaseCommand):
     help = 'Adiciona 8 faltas para um aluno específico baseado no nome de usuário'
 
     def handle(self, *args, **kwargs):
         username = input("Digite o nome de usuário do aluno: ")
-        
+
         try:
             user = User.objects.get(username=username)
             aluno = Aluno.objects.get(usuario=user)

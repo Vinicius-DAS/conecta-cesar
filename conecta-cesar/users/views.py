@@ -1,17 +1,16 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login as django_login
-from rolepermissions.checkers import has_role
-from project_cc.roles import Aluno, Professor
-from app_cc.models import Aluno as AlunoModel
-from app_cc.forms import CadastroForm
 from django.contrib import messages
-from rolepermissions.roles import assign_role
+from django.contrib.auth import authenticate
+from django.contrib.auth import login as django_login
+from django.contrib.auth.models import User
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
+from rolepermissions.checkers import has_role
+from rolepermissions.roles import assign_role
 
-
-
+from app_cc.forms import CadastroForm
+from app_cc.models import Aluno as AlunoModel
+from project_cc.roles import Aluno, Professor
 
 
 # Cadastro de novo usuário
@@ -51,6 +50,9 @@ def cadastro(request):
         return redirect("login")  # Redirect to the login page
 
 def login(request):
+    """Authenticates the submitted credentials and redirects to the
+    role-appropriate landing page (avisosp for Professor, avisos for
+    Aluno). GET just renders the login form."""
     if request.method == 'GET':
         return render(request, 'login.html')
     else:
@@ -63,10 +65,10 @@ def login(request):
             # A biblioteca Django mantém o estado do usuário logado usando um cookie.
             # A função django-login cria e atualiza esse cookie para que o usuário seja considerado logado.
             django_login(request, user)
-            
+
             if has_role(user, Professor):
                 return redirect("avisosp")  # URL da página do professor
-            
+
             elif has_role(user, Aluno):
                 return redirect("avisos")  # URL da página do aluno
             else:
@@ -77,7 +79,9 @@ def login(request):
             return redirect("login")  # Redireciona para a página de login
 
 def plataforma(request):
-    if request.user.is_authenticated:  
+    """Redirects an authenticated user to their role's landing page, or
+    to login otherwise — used as a generic "go to my area" entry point."""
+    if request.user.is_authenticated:
         if has_role(request.user, Professor):
             return redirect("avisosp")  # Redireciona para a página do professor
         elif has_role(request.user, Aluno):

@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["venv", "*/migrations/*", "staticfiles"]
+
+[tool.ruff.lint]
+# Deliberately scoped to what actually catches bugs and dead code —
+# not a full style rewrite of a codebase with no prior linting at all.
+select = [
+    "F",  # pyflakes: unused imports/variables, undefined names
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "I",  # isort: import sorting
+    "B",  # flake8-bugbear: common bug patterns (mutable defaults, etc.)
+]
+ignore = [
+    "E501",  # line length — not worth reflowing legacy lines for
+]
+
+[tool.ruff.lint.per-file-ignores]
+"manage.py" = ["F401"]
+"*/settings.py" = ["F401", "E402"]

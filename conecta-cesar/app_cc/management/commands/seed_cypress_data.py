@@ -1,11 +1,26 @@
-from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
-from django.contrib.auth.models import User
-from app_cc.models import Turma, Professor, Disciplina, Aluno, Diario, Nota, Falta,Aviso, Evento, ProfessorFile
-from rolepermissions.roles import assign_role
-from project_cc.roles import Professor as ProfessorRole, Aluno as AlunoRole
-from django.db.utils import IntegrityError
 from datetime import date, timedelta
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand, CommandError
+from django.db.utils import IntegrityError
+from rolepermissions.roles import assign_role
+
+from app_cc.models import (
+    Aluno,
+    Aviso,
+    Diario,
+    Disciplina,
+    Evento,
+    Falta,
+    Nota,
+    Professor,
+    ProfessorFile,
+    Turma,
+)
+from project_cc.roles import Aluno as AlunoRole
+from project_cc.roles import Professor as ProfessorRole
+
 
 class Command(BaseCommand):
     help = 'Cria dados de teste para Cypress: Professor, Turma, Disciplina e Aluno'
@@ -51,12 +66,12 @@ class Command(BaseCommand):
             assign_role(user_aluno, AlunoRole)
 
             # Criação de um diário
-            diario = Diario.objects.create(
+            Diario.objects.create(
                 disciplina=disciplina, titulo="Título do Diário", texto="Descrição do Diário"
             )
 
             # Criação de uma nota para o aluno
-            nota = Nota.objects.create(
+            Nota.objects.create(
                 aluno=aluno, disciplina=disciplina, valor=6.0
             )
 
@@ -76,7 +91,7 @@ class Command(BaseCommand):
                 titulo = "E2E aviso",
                 corpo = "testes automatizados"
             )
-            
+
             Evento.objects.create(
                 titulo = "titulo",
                 descricao = "evento e2e",
@@ -90,8 +105,8 @@ class Command(BaseCommand):
                 disciplina=disciplina,
                 titulo='titulo',
                 descricao = 'slide e2e',
-            )        
-            
+            )
+
             self.stdout.write(self.style.SUCCESS('Dados de teste criados com sucesso: Professor, Turma, Disciplina, Aluno, Diário, Nota , Aviso, Evento, Faltas,  Slides e Superusuário'))
         except IntegrityError as e:
             self.stdout.write(self.style.ERROR(f'Erro de integridade, os seguintes dados já existem no banco de dados: {str(e)}'))
