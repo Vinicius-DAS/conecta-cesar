@@ -12,6 +12,10 @@ db.sqlite3-journal
 .env
 media/
 
+# Local-only helper scripts with real credentials filled in — never
+# meant to be committed. See debug-prod.local.sh.
+*.local.sh
+
 #
 ###Cypress
 # Ignorar arquivos de módulos do Node.js
