@@ -10,3 +10,5 @@ whitenoise
 django-role-permissions
 pillow
 django-debug-toolbar
+django-storages
+boto3
