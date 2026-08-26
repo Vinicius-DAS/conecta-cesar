@@ -1,4 +1,5 @@
 import io
+import os
 import random
 from datetime import date, timedelta
 
@@ -71,10 +72,19 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **kwargs):
-        if not settings.DEBUG:
+        # DEBUG=True (local dev) always allows it. Outside that — e.g. this
+        # project's own "prod" Render deployment, which is itself just a
+        # portfolio demo, not a real school's data — it additionally
+        # requires an explicit ALLOW_DEMO_SEED=1, so this can't be run
+        # against an actual production database by accident.
+        allow_on_non_debug = os.getenv('ALLOW_DEMO_SEED', '0').lower() in ['true', 't', '1']
+        if not settings.DEBUG and not allow_on_non_debug:
             raise CommandError(
-                "seed_demo_data only runs with DEBUG=True — it's meant for "
-                "a demo deployment's initial data, not a real production DB."
+                "Refusing to run with DEBUG=False and no ALLOW_DEMO_SEED=1 "
+                "— this populates fake demo data and would be dangerous "
+                "against a real production database. If this really is a "
+                "demo deployment (not real user data), re-run with "
+                "ALLOW_DEMO_SEED=1 set."
             )
 
         try:
