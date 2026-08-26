@@ -52,6 +52,35 @@ else:
         }
     }
 
+    # Render's free-plan disk isn't persistent across deploys, so
+    # user-uploaded files (profile photos, atividades, etc.) would
+    # otherwise vanish every time the service redeploys. Routing MEDIA
+    # through an S3-compatible bucket (e.g. Neon Object Storage) keeps
+    # them around. Optional: falls back to the local filesystem (and a
+    # local media/ dir that doesn't survive redeploys) if these aren't
+    # set, so a bare prod deploy without a bucket configured still works.
+    # NOTE: the old `DEFAULT_FILE_STORAGE = '...'` switch no longer does
+    # anything as of Django 6.1 — that legacy setting was dropped, with
+    # no automatic bridge into the STORAGES dict. The actual backend
+    # selection based on AWS_S3_ACCESS_KEY_ID happens down at STORAGES,
+    # near MEDIA_ROOT/STATIC_ROOT (this flag just has to be read up here,
+    # before DATABASES-adjacent env vars go out of scope for this branch).
+    AWS_S3_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    if AWS_S3_ACCESS_KEY_ID:
+        AWS_STORAGE_BUCKET_NAME = 'uploads'
+        AWS_S3_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+        AWS_S3_ENDPOINT_URL = os.environ.get('AWS_ENDPOINT_URL_S3')
+        AWS_S3_REGION_NAME = os.environ.get('AWS_REGION')
+        # No per-object ACL header: the bucket is already private at the
+        # bucket level (set when it was created), and it's not confirmed
+        # this S3-compatible provider supports per-object ACLs at all —
+        # leaving AWS_DEFAULT_ACL unset avoids sending one.
+        # Signed, temporary URLs on every read (bucket has no public access).
+        AWS_QUERYSTRING_AUTH = True
+        # Don't silently overwrite an existing object with the same name
+        # (e.g. two different students both uploading "foto.png").
+        AWS_S3_FILE_OVERWRITE = False
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -148,7 +177,29 @@ MEDIA_URL="media/"
 
 FILE_UPLOAD_MAX_MEMORY_SIZE=2500000 #Padrão 2,5MB
 
-STATICFILES_STORAGE = ('whitenoise.storage.CompressedManifestStaticFilesStorage')
+# django-storages' individual AWS_S3_* settings above (bucket, keys,
+# endpoint, region) are read directly by the S3 backend regardless of
+# STORAGES — but which backend actually runs is decided here.
+STORAGES = {
+    "default": {
+        "BACKEND": (
+            "storages.backends.s3.S3Storage"
+            if (not NOT_PROD and AWS_S3_ACCESS_KEY_ID)
+            else "django.core.files.storage.FileSystemStorage"
+        ),
+    },
+    # The compressed+hashed manifest storage requires collectstatic to
+    # have already run (render.yaml's buildCommand does this) — its
+    # manifest file doesn't exist for a plain local runserver/test run,
+    # so only use it in prod. Dev falls back to Django's plain storage.
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not NOT_PROD
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 LANGUAGE_CODE = 'pt'
 

@@ -42,3 +42,17 @@ services:
         sync: false
       - key: DBPASS
         sync: false
+      # Object storage for uploaded files (profile photos, atividades,
+      # etc.) — Render's free-plan disk isn't persistent, so without
+      # this, uploads vanish on every redeploy. Using Neon Object
+      # Storage's "uploads" bucket (S3-compatible); credentials come
+      # from the Neon Console, same place as the DB ones above. Optional
+      # — if left blank, falls back to Render's (ephemeral) local disk.
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
