@@ -1,118 +1,109 @@
 # Contribuindo para o Projeto Conecta Cesar 🤝
 
-Bem-vindo ao projeto Conecta Cesar! Obrigado por considerar contribuir para o nosso projeto! Siga as instruções abaixo para configurar o ambiente de desenvolvimento.
+Bem-vindo ao projeto Conecta Cesar! Obrigado por considerar contribuir. Este guia cobre a configuração do ambiente de desenvolvimento e o processo de contribuição.
 
 ## Pré-requisitos
 
-Antes de começar, certifique-se de ter o seguinte instalado na sua máquina:
-
-- [Python](https://www.python.org/downloads/)
+- [Python](https://www.python.org/downloads/) 3.12+
+- [Node.js](https://nodejs.org/) (só necessário se for rodar os testes E2E do Cypress)
 - [Git](https://git-scm.com/downloads)
-- [VScode](https://code.visualstudio.com/download)
 
-## Passos para Configuração
+## Configurando o ambiente
 
-### 1. Clone o Repositório
+### 1. Clone o repositório
 
-Abra seu terminal e navegue até o diretório onde deseja clonar o repositório. Em seguida, execute o comando abaixo:
-```
-git clone https://github.com/MigueldsBatista/conecta-cesar.git
-```
-
-### 2. Navegue até o Diretório do Projeto
-Use o comando
-```
+```bash
+git clone https://github.com/Vinicius-DAS/conecta-cesar.git
 cd conecta-cesar/conecta-cesar
 ```
 
-### 3. Crie e Ative um Ambiente Virtual
-Para criar um ambiente virtual, execute o seguinte comando:
-```
+### 2. Crie e ative um ambiente virtual
+
+```bash
 python -m venv venv
 ```
 
-Para ativar o ambiente virtual:
-
-### No Windows:
-```
+No Windows:
+```bash
 .\venv\Scripts\activate
 ```
 
-### No macOS/Linux:
-```
+No macOS/Linux:
+```bash
 source venv/bin/activate
 ```
 
-### 4. Instale as Dependências
-Com o ambiente virtual ativado dentro da mesma pasta, instale as dependências necessárias:
-```
+### 3. Instale as dependências
+
+```bash
 pip install -r requirements.txt
 ```
-### 5. Execute as migrações:
-Realize as migrações no banco usando: 
-(Note que em algums dispositivos é usado py como prefixo ao inves de python)
-```
-python .\manage.py makemigrations
-```
-Em seguida
-```
-python .\manage.py migrate
-```
-### 6. Execute o Servidor de Desenvolvimento
-Finalmente, para iniciar o servidor de desenvolvimento, execute:
 
+### 4. Configure o `.env`
 
-```
-python .\manage.py runserver
+```bash
+cp .env.example .env
 ```
 
-Agora, você deve ser capaz de acessar o aplicativo em seu navegador, normalmente o servidor local é http://127.0.0.1:8000/.
+O padrão (`TARGET_ENV=Dev`) já é suficiente para rodar localmente com SQLite — as demais variáveis só importam em produção. Veja `.env.example` para a lista completa.
 
-### 7. Contribuindo com Código
+### 5. Rode as migrações
 
-Recomendamos o uso do Visual Studio Code (VSCode) para desenvolver o projeto. Para abrir o projeto no VSCode, siga os passos abaixo:
-
-# Abra o VSCode.
-Clique em File > Open Folder... e selecione o diretório do projeto conecta-cesar.
-Certifique-se de que o ambiente virtual esteja ativado no terminal do VSCode.
-
-Para editar o código usamos
-crie um Fork do repositório.
-Clone seu fork localmente.
-Crie uma branch para sua modificação:
-```
-git checkout -b nova-feature
+```bash
+python manage.py migrate
 ```
 
-Faça suas mudanças.
-# Commit suas mudanças:
-```
-git commit -m "Adicionar nova feature"
-```
+### 6. (Opcional) Popule com dados de exemplo
 
-# Push para a branch:
-```
-git push origin nova-feature
+```bash
+python manage.py seed_demo_data
 ```
 
-# Abra um Pull Request.
+Cria professores, turmas, disciplinas, alunos e conteúdo em todas as áreas do sistema — login com qualquer usuário criado, senha `demo123`. Veja `app_cc/management/commands/seed_demo_data.py` para a lista completa.
 
-### Processo de Revisão
-Nossa equipe irá analisar todos os pull requests. Apenas aqueles que forem coerentes e estiverem alinhados com os objetivos do projeto serão aprovados.
+### 7. Rode o servidor
 
-# Dúvidas?
-Se tiver qualquer dúvida, sinta-se à vontade para abrir uma issue.
+```bash
+python manage.py runserver
+```
 
+Acesse em [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
+## Rodando os testes
 
+```bash
+# Testes unitários (Django)
+python manage.py test
 
-## Diretrizes de Desenvolvimento 🤔
+# Testes E2E (Cypress) — precisa do servidor rodando em outro terminal
+npm ci
+npx cypress open   # interface interativa
+npx cypress run    # linha de comando
+```
 
-  - Para fazer uma boa contribuição siga as boas práticas de codificação em Python, HTML e CSS.
-  - Formatação correta do código.
-  - Ordem de imports correta no código.
-  - Caso qualquer um desses itens não seja validado, o Push não vai ser aprovado, e o Call Center vai pedir pra você melhorar o Pull Request. :D
+## Contribuindo com código
 
+1. **Escolha uma issue** — dê uma olhada nas [issues abertas](https://github.com/Vinicius-DAS/conecta-cesar/issues).
+2. **Fork** o repositório para sua conta.
+3. **Crie uma branch** para sua contribuição:
+   ```bash
+   git checkout -b nova-feature
+   ```
+4. Desenvolva suas alterações, seguindo as diretrizes abaixo.
+5. **Teste localmente** antes de abrir o PR (unitários + E2E se relevante).
+6. **Commit e push**:
+   ```bash
+   git commit -m "Adicionar nova feature"
+   git push origin nova-feature
+   ```
+7. **Abra um Pull Request** explicando as alterações.
 
+### Diretrizes de desenvolvimento 🤔
 
-Obrigado por contribuir para o Conecta Cesar! Este guia cobre os passos básicos para configurar o ambiente de desenvolvimento e contribuir com código. Se tiver alguma dúvida, não hesite em entrar em contato com a equipe de desenvolvimento.
+- Siga boas práticas de codificação em Python, HTML e CSS.
+- Formatação e ordem de imports consistentes com o resto do código.
+- PRs que não seguirem essas diretrizes serão devolvidos para ajustes antes da aprovação.
+
+## Dúvidas?
+
+Abra uma issue, ou entre em contato com vdas@cesar.school.
