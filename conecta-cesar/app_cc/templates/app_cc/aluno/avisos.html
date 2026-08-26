@@ -13,11 +13,9 @@
       {% for aviso in avisos %}
 
         <div class="news-item">
-          {%if aviso.imagem %}
-          <img src="{{ aviso.imagem.url}}" alt="Imagem do aviso" class="imagem-aviso ">
-          {%else%}
-          <img src="#" alt="{{aviso.titulo}}" class="imagem-aviso ">
-          {%endif%}
+          {% if aviso.imagem %}
+          <img src="{{ aviso.imagem.url }}" alt="Imagem do aviso" class="imagem-aviso">
+          {% endif %}
             <h2 >{{aviso.titulo}}</h2>
             <a class="orange-text" href="{% url 'detalhe_aviso' aviso.id %}">LEIA MAIS »</a>
             <p class="date">{{aviso.publicado}}</p>
