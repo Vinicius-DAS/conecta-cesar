@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from django.core.management.utils import get_random_secret_key
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,8 +17,10 @@ NOT_PROD = not (TARGET_ENV and TARGET_ENV.lower().startswith('prod'))
 if NOT_PROD:
     # SECURITY WARNING: don't run with debug turned on in production!
     DEBUG = True
-    # SECURITY WARNING: keep the secret key used in production secret!
-    SECRET_KEY = '<Secret key>'
+    # Falls back to a freshly generated key so local dev works out of the
+    # box with no setup; set SECRET_KEY in .env if you need it stable
+    # across restarts (e.g. to keep sessions alive).
+    SECRET_KEY = os.getenv('SECRET_KEY') or get_random_secret_key()
     ALLOWED_HOSTS = []
     DATABASES = {
         'default': {
@@ -58,7 +61,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "debug_toolbar",
     #Adicionar whitenoise na lista de aplicativos instalados
     "whitenoise.runserver_nostatic",
     'users'
@@ -66,24 +68,26 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Add whitenoise middleware after the security middleware   
-                              
+    # Add whitenoise middleware after the security middleware
     'whitenoise.middleware.WhiteNoiseMiddleware',
     "django.contrib.sessions.middleware.SessionMiddleware",
-   "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "project_cc.middlewares.CSRFMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
-INTERNAL_IPS = [
-    '127.0.0.1',
-    
-                ]
+INTERNAL_IPS = []
+
+# debug_toolbar was previously installed unconditionally, meaning it (and
+# the debug pages it exposes) ran even when DEBUG was meant to be off.
+# Only wire it in for real local development now.
+if DEBUG:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS.append('127.0.0.1')
 
 TEMPLATES = [
     {
@@ -120,12 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 ROOT_URLCONF = 'project_cc.urls'
 
-ROLEPERMISSIONS_MODULE="rt_project.roles"
-
-
 WSGI_APPLICATION = 'project_cc.wsgi.application'
 
-# STATIC_URL = "static/"
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
@@ -156,8 +156,6 @@ USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-DEBUG=True
 
 # Mensagens:
 from django.contrib.messages import constants
