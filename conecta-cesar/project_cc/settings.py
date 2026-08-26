@@ -73,7 +73,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "project_cc.middlewares.CSRFMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -123,6 +123,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 ROOT_URLCONF = 'project_cc.urls'
+
+# Redirects back to the same page with a flash message instead of
+# Django's default 403 page when a request fails CSRF validation
+# (e.g. an expired session, or a form left open too long).
+CSRF_FAILURE_VIEW = 'project_cc.views.csrf_failure'
 
 WSGI_APPLICATION = 'project_cc.wsgi.application'
 
