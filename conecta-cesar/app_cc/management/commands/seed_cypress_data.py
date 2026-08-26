@@ -1,4 +1,5 @@
-from django.core.management.base import BaseCommand
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth.models import User
 from app_cc.models import Turma, Professor, Disciplina, Aluno, Diario, Nota, Falta,Aviso, Evento, ProfessorFile
 from rolepermissions.roles import assign_role
@@ -10,6 +11,15 @@ class Command(BaseCommand):
     help = 'Cria dados de teste para Cypress: Professor, Turma, Disciplina e Aluno'
 
     def handle(self, *args, **kwargs):
+        # This seeds professor1/aluno1/adm with the password "123", including
+        # a superuser — never let it run anywhere DEBUG isn't explicitly on.
+        if not settings.DEBUG:
+            raise CommandError(
+                "seed_cypress_data only runs with DEBUG=True — it creates "
+                "throwaway accounts with the password '123', including a "
+                "superuser. Refusing to run against what looks like a real "
+                "deployment."
+            )
         try:
             # Criação do usuário para o professor
             user_professor = User.objects.create_user(

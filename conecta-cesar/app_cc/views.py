@@ -17,6 +17,38 @@ from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.http import Http404
+from django.utils.text import get_valid_filename
+from PIL import Image, UnidentifiedImageError
+
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
+# Signature bytes used to check a file's actual content matches its
+# extension, instead of trusting the extension alone. .pptx/.docx are
+# both OOXML, i.e. zip archives under the hood, hence the shared signature.
+FILE_SIGNATURES = {
+    '.pdf': (b'%PDF',),
+    '.pptx': (b'PK\x03\x04',),
+    '.docx': (b'PK\x03\x04',),
+}
+
+
+def uploaded_file_content_is_valid(file, extension):
+    """Checks that an uploaded file's actual content matches what its
+    extension claims, instead of trusting the filename alone. Leaves
+    file's read position reset to the start either way."""
+    try:
+        if extension in IMAGE_EXTENSIONS:
+            Image.open(file).verify()
+            return True
+        signatures = FILE_SIGNATURES.get(extension)
+        if signatures is None:
+            return True
+        header = file.read(4)
+        return any(header.startswith(sig) for sig in signatures)
+    except (UnidentifiedImageError, OSError):
+        return False
+    finally:
+        file.seek(0)
+
 
 def gerar_relatorio(disciplinas, professor):
     for disciplina in disciplinas:
@@ -124,7 +156,7 @@ def hora_extra(request):
                     messages.error(request, "Horas extras devem ser maior que 0.")
                     return redirect("hora_extra")
             except ValueError:
-                messages.error(_("Valor inválido para horas extras."))
+                messages.error(request, _("Valor inválido para horas extras."))
                 return redirect("hora_extra")
 
             try:
@@ -142,12 +174,17 @@ def hora_extra(request):
         horas_extras = request.POST.get("horas_extras")
 
         if not file:
-            messages.error(_("Nenhum arquivo recebido."))
+            messages.error(request, _("Nenhum arquivo recebido."))
             return redirect("hora_extra")
 
         # Verificar se o tipo do arquivo é aceitável
-        if not file.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+        if not file.name.lower().endswith(IMAGE_EXTENSIONS):
             messages.error(request, _("Somente arquivos JPG ou PNG são permitidos."))
+            return redirect("hora_extra")
+
+        ext = os.path.splitext(file.name)[1].lower()
+        if not uploaded_file_content_is_valid(file, ext):
+            messages.error(request, _("O arquivo enviado não é uma imagem válida."))
             return redirect("hora_extra")
 
         if not horas_extras or horas_extras.strip() == "":
@@ -163,10 +200,14 @@ def hora_extra(request):
             messages.error(request, _("Valor inválido para horas extras."))
             return redirect("hora_extra")
 
-        # Se for um novo arquivo
-        file_name_with_date = f"{file.name[:-4]}-{date.today()}.jpg"
-        
-        file_path = os.path.join(settings.MEDIA_ROOT, f"user_files/{file_name_with_date}")
+        # Se for um novo arquivo — filename is sanitized (no path separators
+        # or traversal sequences) before it ever touches the filesystem.
+        safe_stem = os.path.splitext(get_valid_filename(file.name))[0]
+        file_name_with_date = f"{safe_stem}-{date.today()}.jpg"
+
+        upload_dir = os.path.join(settings.MEDIA_ROOT, "user_files")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, file_name_with_date)
 
         # Salvar o arquivo diretamente no sistema de arquivos
         with open(file_path, "wb+") as destino:
@@ -457,12 +498,19 @@ def slidesp(request):
                 messages.error(request, _("Tipo de arquivo não permitido."))
                 return redirect("slidesp")
 
-            ext = file.name.split('.')[-1]
+            ext = os.path.splitext(file.name)[1].lower()
+            if not uploaded_file_content_is_valid(file, ext):
+                messages.error(request, _("O conteúdo do arquivo não corresponde ao tipo esperado."))
+                return redirect("slidesp")
 
-            # Se for um novo arquivo
-            file_name_with_date = f"{file.name.rsplit('.', 1)[0]}-{date.today()}.{ext}"
+            # Se for um novo arquivo — filename is sanitized (no path
+            # separators or traversal sequences) before it touches disk.
+            safe_stem = os.path.splitext(get_valid_filename(file.name))[0]
+            file_name_with_date = f"{safe_stem}-{date.today()}{ext}"
 
-            file_path = os.path.join(settings.MEDIA_ROOT, f"documentosp/{file_name_with_date}")
+            upload_dir = os.path.join(settings.MEDIA_ROOT, "documentosp")
+            os.makedirs(upload_dir, exist_ok=True)
+            file_path = os.path.join(upload_dir, file_name_with_date)
 
             # Salvar o arquivo diretamente no sistema de arquivos
             with open(file_path, "wb+") as destino:
@@ -1023,15 +1071,19 @@ def aluno_atividade(request, id):
         arquivo = request.FILES.get('arquivo')
         if not atividadeFeita:
             if arquivo:
-                #obj = AtividadeFeita.objects.create(atividade=atividade, conclusao=True, arquivo=arquivo, aluno=aluno)
-                #obj.save()
-                try: 
-                    atividade_feita = AtividadeFeita.objects.get(atividade = atividade)
+                # Must be scoped to this aluno too, not just the atividade —
+                # AtividadeFeita rows exist per (atividade, aluno) pair, and
+                # looking up by atividade alone would find and reassign
+                # whichever other student's row happened to match first.
+                atividade_feita, created = AtividadeFeita.objects.get_or_create(
+                    atividade=atividade,
+                    aluno=aluno,
+                    defaults={'conclusao': True, 'arquivo': arquivo},
+                )
+                if not created:
                     atividade_feita.conclusao = True
-                    atividade_feita.aluno = aluno
+                    atividade_feita.arquivo = arquivo
                     atividade_feita.save()
-                except AtividadeFeita.DoesNotExist:
-                    AtividadeFeita.objects.create(atividade=atividade, conclusao=True, arquivo=arquivo, aluno=aluno)
             else:
                 messages.error(request, 'Envie o seu arquivo de resposta da atividade. É obrigatório.')
                 return render(request, 'app_cc/aluno/atividade.html', {

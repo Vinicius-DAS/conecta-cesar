@@ -1,0 +1,44 @@
+# Render Blueprint — see DEPLOY.md for the full walkthrough
+# (why Render+Neon instead of Render's own Postgres, how to fill in the
+# prompted values, and what to run once the first deploy is up).
+#
+# https://render.com/docs/blueprint-spec
+services:
+  - name: conecta-cesar
+    type: web
+    runtime: python
+    plan: free
+    rootDir: conecta-cesar
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    # migrate runs on every deploy — safe, since applying an
+    # already-applied migration is a no-op.
+    startCommand: "python manage.py migrate && gunicorn project_cc.wsgi:application"
+    envVars:
+      - key: TARGET_ENV
+        value: prod
+      - key: DEBUG
+        value: "0"
+      # Leading dot matches any subdomain — works without knowing the
+      # exact *.onrender.com hostname Render assigns up front.
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
+      - key: SECURE_SSL_REDIRECT
+        value: "1"
+      - key: SECRET_KEY
+        generateValue: true
+      # Postgres — deliberately NOT Render's own managed database: its
+      # free tier Postgres expires after 30 days, which would silently
+      # break this once it's linked from a portfolio. Using Neon instead
+      # (neon.tech, free tier has no expiration). Render prompts for
+      # these during Blueprint setup — paste in the values from your
+      # Neon project's connection details.
+      - key: DBNAME
+        sync: false
+      - key: DBHOST
+        sync: false
+      - key: DBUSER
+        sync: false
+      - key: DBPASS
+        sync: false
