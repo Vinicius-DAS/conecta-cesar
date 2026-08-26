@@ -51,7 +51,9 @@ Bem vindo ao repositório do nosso projeto Conecta Cesar. Nossa plataforma está
 
 - **Organização**:<br>![Jira](https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white)
 
+## 🚀 Deploy
 
+Ver [DEPLOY.md](DEPLOY.md) pro passo a passo de colocar isso no ar (Render + Neon, gratuito).
 
 ## 🖇️ Links Importantes
 
