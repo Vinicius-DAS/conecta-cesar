@@ -18,57 +18,35 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Python version
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: conecta-cesar/requirements.txt
 
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-      
+      # No venv here on purpose — a GitHub Actions runner is already an
+      # isolated, disposable environment, so a venv on top of it buys
+      # nothing (and the previous "activate" here didn't actually persist
+      # to later steps anyway — each `run:` block is its own shell).
       - name: Install dependencies
         run: |
           cd conecta-cesar
           pip install -r requirements.txt
-          npm init -y
-          npm install
-          npm install cypress --save -include=dev 
-          npm ci
-          cd ..
-      # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
-      #deixei os testes desativados para fazer o deploy
-      #- name: Run local server
-      #  run: |
-      #    cd conecta-cesar
-      #    python manage.py migrate
-      #    python manage.py runserver &
-      #    sleep 5
-      #    npx cypress run
 
-      - name: Cleaning testing files
-        run: |
-          cd conecta-cesar/
-          rm db.sqlite3
-          rm .env
-          cd ..
+      # Tests intentionally not run here — see #4 and #9 for the actual
+      # test suites (Django unit tests + Cypress E2E, both exercised in
+      # main_conecacesar.yml). Re-enable here once this deploy target is
+      # actually in use again (Render is the current one — see DEPLOY.md).
 
-      #    rm cypress.config.js
-      #    rm package-lock.json
-      #    rm package.json
-      #    rm -rf cypress
-      #    rm -rf node_modules
-
-      #   cd.. aqui 
       - name: Zip artifact for deployment
         run: |
           cd conecta-cesar/
           zip release.zip ./* -r
           cd ..
           mv conecta-cesar/release.zip .
-          
+
       - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-app
           path: |
@@ -86,14 +64,14 @@ jobs:
 
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: python-app
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
+
       - name: Login to Azure
         uses: azure/login@v1
         with:
@@ -107,6 +85,3 @@ jobs:
         with:
           app-name: 'conecacesar'
           slot-name: 'Production'
-          
-
-          

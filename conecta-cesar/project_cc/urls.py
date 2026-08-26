@@ -16,7 +16,7 @@ def homepage(request):
 urlpatterns = [
     path('admin/', admin.site.urls),  # Rotas para o administrador
 ]
-if settings.DEBUG:
+if 'debug_toolbar' in settings.INSTALLED_APPS:
     import debug_toolbar
     urlpatterns += [
         url('__debug__/', include(debug_toolbar.urls)),
